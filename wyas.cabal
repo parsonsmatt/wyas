@@ -16,6 +16,7 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Parser
+                     , Eval
   build-depends:       base >= 4.8 && < 5
                      , parsec
   default-language:    Haskell2010
@@ -31,6 +32,7 @@ executable wyas-exe
 test-suite wyas-test
   type:                exitcode-stdio-1.0
   other-modules:       ParserSpec
+                     , EvalSpec
   hs-source-dirs:      test
   main-is:             Spec.hs
   build-depends:       base
