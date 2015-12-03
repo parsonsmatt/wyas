@@ -30,7 +30,7 @@ executable wyas-exe
 
 test-suite wyas-test
   type:                exitcode-stdio-1.0
-  exposed-modules:     ParserSpec
+  other-modules:       ParserSpec
   hs-source-dirs:      test
   main-is:             Spec.hs
   build-depends:       base

@@ -1,8 +1,1 @@
-module Main where
-
-import Test.Hspec
-import ParserSpec
-
-main :: IO ()
-main = hspec $ do
-    parserSpec
+{-# OPTIONS_GHC -F -pgmF hspec-discover #-}

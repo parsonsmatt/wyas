@@ -17,7 +17,7 @@ data LispVal
     | Bool Bool
     | Character Char
     | Float Double
-    deriving Show
+    deriving (Show, Eq)
 
 parseString :: Parser LispVal
 parseString = String <$> (char '"' *> many safeQuotes <* char '"')
@@ -25,12 +25,9 @@ parseString = String <$> (char '"' *> many safeQuotes <* char '"')
 parseCharacter :: Parser LispVal
 parseCharacter = char '#' >> char '\\' >> Character <$> lispChar
     where
-        lispChar = char '(' 
-               <|> char ' '
-               <|> spaceStr
+        lispChar = spaceStr
                <|> newLineStr
-               <|> upper
-               <|> lower
+               <|> anyChar
         spaceStr = stringCaseInsensitive "space" >> return ' '
         newLineStr = stringCaseInsensitive "newline" >> return '\n'
 
@@ -46,7 +43,7 @@ parseDottedList = do
 
 parseQuoted :: Parser LispVal
 parseQuoted = do
-    _ <- char '\\'
+    char '\\'
     x <- parseExpr
     return $ List [Atom "quote", x]
 
@@ -54,7 +51,7 @@ parseFloat :: Parser LispVal
 parseFloat = do
     c <- option '+' (oneOf "+-")
     digits <- many1 digit
-    post <- option "0" (char '.' >> many1 digit)
+    post <- char '.' >> many1 digit
     return (Float ((if c == '+' then id else negate) (read (concat [digits, ".", post]))))
 
 charCaseInsensitive :: Char -> Parser Char
@@ -97,9 +94,12 @@ parseAtom = do
                   "#f" -> Bool False
                   _    -> Atom atom
 
-parseNumber :: Parser LispVal
-parseNumber = ((Number . read) <$> many1 digit) <|> altBase
-
+parseInt :: Parser LispVal
+parseInt = try altBase <|> do
+  s <- try (char '-') <|> return '0'
+  d <- many1 digit
+  return (Number (read (s:d)))
+  
 altBase :: Parser LispVal
 altBase = do
     c <- char '#' >> oneOf "bodx"
@@ -116,19 +116,17 @@ altBase = do
                       'x' -> fst . head . readHex $ n
                       _   -> error "Wrong prefix"
     return (Number (fromIntegral number))
-    
-
 
 readBinary :: String -> Int
 readBinary = foldl' (\acc c -> (acc * 2) + digitToInt c) 0
 
 parseExpr :: Parser LispVal
-parseExpr =
-        parseAtom
-    <|> parseString
-    <|> parseNumber
+parseExpr = pzero
     <|> parseCharacter
-    <|> parseFloat
+    <|> parseAtom
+    <|> parseString
+    <|> try parseFloat
+    <|> parseInt
     <|> parseQuoted
     <|> do _ <- char '('
            x <- try parseList <|> parseDottedList
