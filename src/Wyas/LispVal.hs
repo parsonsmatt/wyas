@@ -1,4 +1,4 @@
-module LispVal where
+module Wyas.LispVal where
 
 data LispVal
     = Atom String

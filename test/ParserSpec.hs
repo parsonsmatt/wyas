@@ -6,9 +6,7 @@ import Text.ParserCombinators.Parsec
 import Numeric
 import Data.Either
 
-import LispVal
-import Parser
-
+import Wyas
 
 testParser :: Parser a -> String -> Either ParseError a
 testParser p = runParser p () ""
