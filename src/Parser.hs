@@ -6,12 +6,31 @@ import Text.ParserCombinators.Parsec
 import Data.List (foldl')
 import Numeric
 
+-- $setup
+-- >>> let testP p = runParser p () ""
+
 symbol :: Parser Char
 symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
 
+-- | Parses a String, consisting of many characters in quotes.
+--
+-- >>> testP parseString "\"Hello world!\""
+-- Right (String "Hello world!")
+--
+-- >>> testP parseString " No quotes?? "
+-- Left (line 1, column 1):
+-- unexpected " "
+-- expecting "\""
 parseString :: Parser LispVal
 parseString = String <$> (char '"' *> many safeQuotes <* char '"')
 
+-- | Parses a character literal.
+--
+-- >>> testP parseCharacter "#\\space"
+-- Right (Character ' ')
+--
+-- >>> testP parseCharacter "#\\a"
+-- Right (Character 'a')
 parseCharacter :: Parser LispVal
 parseCharacter = char '#' >> char '\\' >> Character <$> lispChar
     where
@@ -22,9 +41,20 @@ parseCharacter = char '#' >> char '\\' >> Character <$> lispChar
         newLineStr = stringCaseInsensitive "newline" >> return '\n'
 
 
+-- | Parses a list of lisp values separated by spaces.
+--
+-- >>> testP parseList "1 2.0 (asdf \"hello\")"
+-- Right (List [Number 1,Float 2.0,List [Atom "asdf",String "hello"]])
+--
+-- >>> testP parseList "(print (\"hello\" \"world\"))"
+-- Right (List [List [Atom "print",List [String "hello",String "world"]]])
 parseList :: Parser LispVal
 parseList = List <$> sepBy parseExpr spaces
 
+-- | Parses a list in a dotted format.
+--
+-- >>> testP parseDottedList "car . cdr"
+-- Right (DottedList [Atom "car"] (Atom "cdr"))
 parseDottedList :: Parser LispVal
 parseDottedList = do
     car <- endBy parseExpr spaces

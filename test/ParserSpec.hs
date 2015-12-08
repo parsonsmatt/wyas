@@ -6,6 +6,7 @@ import Text.ParserCombinators.Parsec
 import Numeric
 import Data.Either
 
+import LispVal
 import Parser
 
 
