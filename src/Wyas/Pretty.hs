@@ -1,3 +1,8 @@
-module Wyas.Pretty where
+module Wyas.Pretty
+  ( module Wyas.Pretty
+  , module X
+  ) where
 
-import Wyas.LispVal
+import Text.PrettyPrint.Leijen as X
+import Wyas.LispVal as X
+

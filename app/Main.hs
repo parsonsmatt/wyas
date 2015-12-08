@@ -3,6 +3,7 @@ module Main where
 import System.IO
 import Control.Monad
 import Wyas
+import Wyas.Pretty
 
 -- | lawl
 -- >>> 10
@@ -20,4 +21,8 @@ repl = do
   putStr "::| "
   hFlush stdout
   str <- getLine
-  print $ parseLisp lispExpr str
+  let e = parseLisp lispExpr str
+  print e
+  case e of
+       Right p -> print (pretty p)
+       _ -> return  ()

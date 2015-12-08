@@ -23,4 +23,7 @@ instance Pretty LispVal where
   pretty (Character '\n') = text "#\\newline"
   pretty (Character c) = text ("#\\" ++ [c])
   pretty (Float d) = text (showFFloat Nothing d "")
-  pretty (List ls) = enclose lparen rparen (pretty ls)
+  -- | This needs to print things with parens and no commas.
+  -- >>> pretty (List [Atom "asdf", Number 3])
+  -- ( "asdf" 3 )
+  pretty (List ls) = encloseSep lparen rparen space (map pretty ls)
