@@ -20,4 +20,4 @@ repl = do
   putStr "::| "
   hFlush stdout
   str <- getLine
-  print $ parseLisp parseExpr str
+  print $ parseLisp lispExpr str

@@ -1,7 +1,7 @@
 module Wyas.Parser where
 
 import Data.Char
-import Text.ParserCombinators.Parsec
+import Text.ParserCombinators.Parsec hiding (string)
 import Data.List (foldl')
 import Numeric
 
@@ -15,25 +15,25 @@ symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
 
 -- | Parses a String, consisting of many characters in quotes.
 --
--- >>> parseLisp parseString "\"Hello world!\""
+-- >>> parseLisp string "\"Hello world!\""
 -- Right (String "Hello world!")
 --
--- >>> parseLisp parseString " No quotes?? "
+-- >>> parseLisp string " No quotes?? "
 -- Left (line 1, column 1):
 -- unexpected " "
 -- expecting "\""
-parseString :: Parser LispVal
-parseString = String <$> (char '"' *> many safeQuotes <* char '"')
+string :: Parser LispVal
+string = String <$> (char '"' *> many safeQuotes <* char '"')
 
 -- | Parses a character literal.
 --
--- >>> parseLisp parseCharacter "#\\space"
+-- >>> parseLisp character "#\\space"
 -- Right (Character ' ')
 --
--- >>> parseLisp parseCharacter "#\\a"
+-- >>> parseLisp character "#\\a"
 -- Right (Character 'a')
-parseCharacter :: Parser LispVal
-parseCharacter = char '#' >> char '\\' >> Character <$> lispChar
+character :: Parser LispVal
+character = char '#' >> char '\\' >> Character <$> lispChar
     where
         lispChar = spaceStr
                <|> newLineStr
@@ -44,31 +44,31 @@ parseCharacter = char '#' >> char '\\' >> Character <$> lispChar
 
 -- | Parses a list of lisp values separated by spaces.
 --
--- >>> parseLisp parseList "1 2.0 (asdf \"hello\")"
+-- >>> parseLisp list "1 2.0 (asdf \"hello\")"
 -- Right (List [Number 1,Float 2.0,List [Atom "asdf",String "hello"]])
 --
--- >>> parseLisp parseList "(print (\"hello\" \"world\"))"
+-- >>> parseLisp list "(print (\"hello\" \"world\"))"
 -- Right (List [List [Atom "print",List [String "hello",String "world"]]])
-parseList :: Parser LispVal
-parseList = List <$> sepBy parseExpr spaces
+list :: Parser LispVal
+list = List <$> sepBy lispExpr spaces
 
 -- | Parses a list in a dotted format.
 --
--- >>> parseLisp parseDottedList "car . cdr"
+-- >>> parseLisp dottedList "car . cdr"
 -- Right (DottedList [Atom "car"] (Atom "cdr"))
-parseDottedList :: Parser LispVal
-parseDottedList = do
-    car <- endBy parseExpr spaces
-    cdr <- char '.' >> spaces >> parseExpr
+dottedList :: Parser LispVal
+dottedList = do
+    car <- endBy lispExpr spaces
+    cdr <- char '.' >> spaces >> lispExpr
     return (DottedList car cdr)
 
-parseQuoted :: Parser LispVal
-parseQuoted = do
-    x <- char '\\' *> parseExpr
+lispQuoted :: Parser LispVal
+lispQuoted = do
+    x <- char '\\' *> lispExpr
     return $ List [Atom "quote", x]
 
-parseFloat :: Parser LispVal
-parseFloat = do
+float :: Parser LispVal
+float = do
     c <- option '+' (oneOf "+-")
     digits <- many1 digit
     post <- char '.' >> many1 digit
@@ -104,18 +104,18 @@ specialCharacter = do
                   '"' -> '\"'
                   _ -> error "unexpect"
 
-parseAtom :: Parser LispVal
-parseAtom = do
+atom :: Parser LispVal
+atom = do
     first <- letter <|> symbol
     rest <- many (letter <|> digit <|> symbol)
-    let atom = first : rest
-    return $ case atom of
+    let atom' = first : rest
+    return $ case atom' of
                   "#t" -> Bool True
                   "#f" -> Bool False
-                  _    -> Atom atom
+                  _    -> Atom atom'
 
-parseInt :: Parser LispVal
-parseInt = try altBase <|> do
+int :: Parser LispVal
+int = try altBase <|> do
   s <- try (char '-') <|> return '0'
   d <- many1 digit
   return (Number (read (s:d)))
@@ -140,15 +140,15 @@ altBase = do
 readBinary :: String -> Int
 readBinary = foldl' (\acc c -> (acc * 2) + digitToInt c) 0
 
-parseExpr :: Parser LispVal
-parseExpr = pzero
-    <|> parseCharacter
-    <|> parseAtom
-    <|> parseString
-    <|> try parseFloat
-    <|> parseInt
-    <|> parseQuoted
+lispExpr :: Parser LispVal
+lispExpr = pzero
+    <|> character
+    <|> atom
+    <|> string
+    <|> try float
+    <|> int
+    <|> lispQuoted
     <|> do _ <- char '('
-           x <- try parseList <|> parseDottedList
+           x <- try list <|> dottedList
            _ <- char ')'
            return x
