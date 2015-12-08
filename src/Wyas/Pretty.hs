@@ -5,4 +5,3 @@ module Wyas.Pretty
 
 import Text.PrettyPrint.Leijen as X
 import Wyas.LispVal as X
-

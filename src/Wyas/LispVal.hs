@@ -27,3 +27,7 @@ instance Pretty LispVal where
   -- >>> pretty (List [Atom "asdf", Number 3])
   -- ( "asdf" 3 )
   pretty (List ls) = encloseSep lparen rparen space (map pretty ls)
+
+truthy :: LispVal -> Bool
+truthy (Bool False) = False
+truthy _ = True

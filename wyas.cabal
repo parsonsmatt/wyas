@@ -22,6 +22,7 @@ library
                      , Wyas.Eval
   build-depends:       base >= 4.8 && < 5
                      , parsec
+                     , containers
                      , wl-pprint
                      , mtl
   default-language:    Haskell2010
