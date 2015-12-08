@@ -52,15 +52,6 @@ character = char '#' >> char '\\' >> Character <$> lispChar
 list :: Parser LispVal
 list = List <$> sepBy lispExpr spaces
 
--- | Parses a list in a dotted format.
---
--- >>> parseLisp dottedList "car . cdr"
--- Right (DottedList [Atom "car"] (Atom "cdr"))
-dottedList :: Parser LispVal
-dottedList = do
-    car <- endBy lispExpr spaces
-    cdr <- char '.' >> spaces >> lispExpr
-    return (DottedList car cdr)
 
 lispQuoted :: Parser LispVal
 lispQuoted = do
@@ -149,6 +140,6 @@ lispExpr = pzero
     <|> int
     <|> lispQuoted
     <|> do _ <- char '('
-           x <- try list <|> dottedList
+           x <- list
            _ <- char ')'
            return x
