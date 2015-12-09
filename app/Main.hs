@@ -3,11 +3,9 @@ module Main where
 import System.IO
 import Control.Monad
 import Wyas
+import Wyas.Eval
 import Wyas.Pretty
 
--- | lawl
--- >>> 10
--- 10
 main :: IO ()
 main = do
   putStrLn "~~~"
@@ -24,5 +22,9 @@ repl = do
   let e = parseLisp lispExpr str
   print e
   case e of
-       Right p -> print (pretty p)
+       Right p -> do
+         print . pretty $ p
+         case bareEval $ evalD p of
+              Right e -> print . pretty $ e
+              Left _ -> putStrLn "eval failure!"
        _ -> return  ()

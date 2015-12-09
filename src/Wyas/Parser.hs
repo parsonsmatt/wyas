@@ -160,7 +160,4 @@ lispExpr = pzero
   <|> try float
   <|> int
   <|> lispQuoted
-  <|> do _ <- char '('
-         x <- list
-         _ <- char ')'
-         return x
+  <|> char '(' *> list <* char ')'

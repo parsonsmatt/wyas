@@ -28,16 +28,24 @@ type LispError = ()
 
 type LispEvalM a = LispEvalT Identity a
 
-type LispEval m = 
-  ( MonadState EvalState m
-  , MonadReader Environment m
-  , MonadError LispError m
-  )
+bareEval :: LispEvalM LispVal -> Either LispError LispVal
+bareEval = runIdentity
+  . flip runReaderT mempty
+  . flip evalStateT () 
+  . runExceptT 
+  . unLispEvalT
 
--- | eval is a plain ol' function that evaluates a Lisp expression.
--- It doesn't expect or anticipate any environment or state.
-eval :: LispEval m => LispVal -> m LispVal
-eval = return
+evalD :: LispVal -> LispEvalM LispVal
+evalD val@(String _) = return val
+evalD val@(Number _) = return val
+evalD val@(Bool _) = return val
+evalD (List [Atom "quote", val]) = return val
+evalD (List (Atom fn : args)) = apply fn args
+evalD a = throwError ()
 
-getSymbol :: String -> Environment -> Maybe LispVal
-getSymbol = Map.lookup
+apply :: String -> [LispVal] -> LispEvalM LispVal
+apply fn args = do
+  f <- asks (Map.lookup fn)
+  case f of
+       Just (Fn g) -> return (g args)
+       _ -> throwError ()

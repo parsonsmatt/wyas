@@ -2,6 +2,10 @@ module Wyas.LispVal where
 
 import Numeric
 import Text.PrettyPrint.Leijen
+import Text.Show.Functions
+
+instance Eq ((->) a b) where
+  _ == _ = False
 
 data LispVal
   = Atom String
@@ -11,6 +15,7 @@ data LispVal
   | Character Char
   | Float Double
   | List [LispVal]
+  | Fn ([LispVal] -> LispVal)
   deriving (Eq, Show)
 
 instance Pretty LispVal where
@@ -27,6 +32,7 @@ instance Pretty LispVal where
   -- >>> pretty (List [Atom "asdf", Number 3])
   -- ( "asdf" 3 )
   pretty (List ls) = encloseSep lparen rparen space (map pretty ls)
+  pretty (Fn _) = text "<function>"
 
 truthy :: LispVal -> Bool
 truthy (Bool False) = False
