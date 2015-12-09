@@ -66,9 +66,14 @@ spec = do
           Right (Float . negate $ (fromInteger x + read ("0." ++ show x)))
   
   describe "atom" $ do
-    it "should handle #t" pending
-    it "should handle #f" pending
-    it "should handle other symbols" pending
+    it "should handle #t" $
+      testParser atom "#t" `shouldBe` Right (Bool True)
+
+    it "should handle #f" $
+      testParser atom "#f" `shouldBe` Right (Bool False)
+
+    it "should not capture characters" $ property $ \c ->
+      testParser atom ("#\\" ++ [c]) `shouldSatisfy` isLeft
 
   describe "list" $ do
     it "reads a list of chars ok" $

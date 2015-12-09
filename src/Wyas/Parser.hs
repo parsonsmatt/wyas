@@ -7,6 +7,9 @@ import Numeric
 
 import Wyas.LispVal
 
+-- $setup
+-- >>> import Data.Either (isLeft)
+
 parseLisp :: Parser LispVal -> String -> Either ParseError LispVal
 parseLisp p = runParser p () ""
 
@@ -34,12 +37,12 @@ string = String <$> (char '"' *> many safeQuotes <* char '"')
 -- Right (Character 'a')
 character :: Parser LispVal
 character = char '#' >> char '\\' >> Character <$> lispChar
-    where
-        lispChar = spaceStr
-               <|> newLineStr
-               <|> anyChar
-        spaceStr = stringCaseInsensitive "space" >> return ' '
-        newLineStr = stringCaseInsensitive "newline" >> return '\n'
+  where
+    lispChar = spaceStr
+        <|> newLineStr
+        <|> anyChar
+    spaceStr = stringCaseInsensitive "space" >> return ' '
+    newLineStr = stringCaseInsensitive "newline" >> return '\n'
 
 
 -- | Parses a list of lisp values separated by spaces.
@@ -55,19 +58,19 @@ list = List <$> sepBy lispExpr spaces
 
 lispQuoted :: Parser LispVal
 lispQuoted = do
-    x <- char '\\' *> lispExpr
-    return $ List [Atom "quote", x]
+  x <- char '\\' *> lispExpr
+  return $ List [Atom "quote", x]
 
 float :: Parser LispVal
 float = do
-    c <- option '+' (oneOf "+-")
-    digits <- many1 digit
-    post <- char '.' >> many1 digit
-    return (Float ((if c == '+' then id else negate) (read (concat [digits, ".", post]))))
+  c <- option '+' (oneOf "+-")
+  digits <- many1 digit
+  post <- char '.' >> many1 digit
+  return (Float ((if c == '+' then id else negate) (read (concat [digits, ".", post]))))
 
 charCaseInsensitive :: Char -> Parser Char
 charCaseInsensitive c = char (toLower c) <|> char (toUpper c)
-    
+
 stringCaseInsensitive :: String -> Parser String
 stringCaseInsensitive s = try (mapM charCaseInsensitive s) <?> "\"" ++ s ++ "\""
 
@@ -77,69 +80,87 @@ safeQuotes = nonQuoteCharacter <|> specialCharacter
 
 nonQuoteCharacter :: Parser Char
 nonQuoteCharacter = do
-    c <- noneOf "\"\\"
-    case c of
-         '"' -> fail "quotes"
-         '\\' -> fail "backslash"
-         _ -> return c
+  c <- noneOf "\"\\"
+  case c of
+       '"' -> fail "quotes"
+       '\\' -> fail "backslash"
+       _ -> return c
 
 specialCharacter :: Parser Char
 specialCharacter = do
-    _ <- char '\\'
-    c <- oneOf "nrt\\\""
-    return $ case c of
-                  'n' -> '\n'
-                  'r' -> '\r'
-                  't' -> '\t'
-                  '\\' -> '\\'
-                  '"' -> '\"'
-                  _ -> error "unexpect"
+  _ <- char '\\'
+  c <- oneOf "nrt\\\""
+  return $ case c of
+                'n' -> '\n'
+                'r' -> '\r'
+                't' -> '\t'
+                '\\' -> '\\'
+                '"' -> '\"'
+                _ -> error "unexpect"
 
+-- | Parses an Atom. This represents a symbol in Lisp which can be either
+-- a keyword or variable.
+--
+-- >>> parseLisp atom "hello"
+-- Right (Atom "hello")
+--
+-- >>> parseLisp atom "+"
+-- Right (Atom "+")
+--
+-- >>> isLeft (parseLisp atom "#\a")
+-- True
+--
+-- >>> parseLisp atom "#t"
+-- Right (Bool True)
 atom :: Parser LispVal
 atom = do
-    first <- letter <|> symbol
-    rest <- many (letter <|> digit <|> symbol)
-    let atom' = first : rest
-    return $ case atom' of
-                  "#t" -> Bool True
-                  "#f" -> Bool False
-                  _    -> Atom atom'
+  first <- letter <|> symbol
+  case first of
+       '#' -> (Bool . (=='t')) <$> oneOf "tf"
+       _ -> do
+         rest <- many (letter <|> digit <|> symbol)
+         let atom' = first : rest
+         case atom' of
+              "#t" -> return $ Bool True
+              "#f" -> return $ Bool False
+              '#' : '\\' : _  -> fail "wrong"
+              _ -> return $ Atom atom'
 
 int :: Parser LispVal
 int = try altBase <|> do
   s <- try (char '-') <|> return '0'
   d <- many1 digit
   return (Number (read (s:d)))
-  
+
 altBase :: Parser LispVal
 altBase = do
-    c <- char '#' >> oneOf "bodx"
-    n <- case c of
-              'b' -> many (oneOf "01")
-              'o' -> many (oneOf "01234567")
-              'd' -> many digit
-              'x' -> many (digit <|> oneOf "abcdefABCDEF")
-              _   -> fail "wrong prefix"
-    let number = case c of
-                      'b' -> readBinary n
-                      'o' -> fst . head . readOct $ n
-                      'd' -> read n
-                      'x' -> fst . head . readHex $ n
-                      _   -> error "Wrong prefix"
-    return (Number (fromIntegral number))
+  c <- char '#' >> oneOf "bodx"
+  n <- case c of
+            'b' -> many (oneOf "01")
+            'o' -> many (oneOf "01234567")
+            'd' -> many digit
+            'x' -> many (digit <|> oneOf "abcdefABCDEF")
+            _   -> fail "wrong prefix"
+  let number = case c of
+        'b' -> readBinary n
+        'o' -> fst . head . readOct $ n
+        'd' -> read n
+        'x' -> fst . head . readHex $ n
+        _   -> error "Wrong prefix"
+  return (Number (fromIntegral number))
 
 readBinary :: String -> Int
 readBinary = foldl' (\acc c -> (acc * 2) + digitToInt c) 0
 
 lispExpr :: Parser LispVal
 lispExpr = pzero
-    <|> atom
-    <|> character
-    <|> string
-    <|> try float
-    <|> int
-    <|> lispQuoted
-    <|> do _ <- char '('
-           x <- list
-           _ <- char ')'
-           return x
+  <|> try atom
+  <|> character
+  <|> string
+  <|> try float
+  <|> int
+  <|> lispQuoted
+  <|> do _ <- char '('
+         x <- list
+         _ <- char ')'
+         return x
