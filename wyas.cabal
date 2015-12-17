@@ -16,6 +16,7 @@ library
   ghc-options:         -Wall
   hs-source-dirs:      src
   exposed-modules:     Wyas
+                     , LolEval
                      , Wyas.Parser
                      , Wyas.LispVal
                      , Wyas.Pretty

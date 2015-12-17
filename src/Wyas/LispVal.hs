@@ -2,7 +2,7 @@ module Wyas.LispVal where
 
 import Numeric
 import Text.PrettyPrint.Leijen
-import Text.Show.Functions
+import Text.Show.Functions ()
 
 instance Eq ((->) a b) where
   _ == _ = False
