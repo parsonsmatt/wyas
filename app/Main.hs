@@ -26,5 +26,5 @@ repl = do
          print . pretty $ p
          case bareEval $ evalD p of
               Right e -> print . pretty $ e
-              Left _ -> putStrLn "eval failure!"
+              Left e -> putStrLn $ "eval failure: " ++ show e
        _ -> return  ()
