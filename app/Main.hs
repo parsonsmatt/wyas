@@ -5,9 +5,15 @@ import Control.Monad
 import Wyas
 import Wyas.Eval
 import Wyas.Pretty
+import System.Environment
 
 main :: IO ()
 main = do
+  args <- getArgs
+  unless (null args) $ do
+    loaded <- readFile (head args)
+    print loaded
+    print $ parseAndEval loaded
   putStrLn "~~~"
   putStrLn "Write Yourself a Scheme!"
   putStrLn "~~~"

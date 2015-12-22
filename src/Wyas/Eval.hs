@@ -7,37 +7,44 @@ module Wyas.Eval where
 
 import Data.List
 import Data.Map.Strict (Map)
+import Text.ParserCombinators.Parsec hiding (string)
 import Data.Maybe
 import qualified Data.Map.Strict as Map
-import Control.Monad.State
 import Control.Monad.Except
 import Control.Monad.Reader
 import Data.Functor.Identity
 
 import Wyas.LispVal
+import Wyas.Parser
+
+
+parseAndEval :: String -> Either LispError LispVal
+parseAndEval s =
+  case parseLisp lispExpr s of
+       Left e -> throwError (Parser e)
+       Right a -> bareEval (evalD a)
 
 newtype LispEvalT m a
   = LispEvalT
-  { unLispEvalT :: ExceptT LispError (StateT EvalState (ReaderT Environment m)) a
+  { unLispEvalT :: ExceptT LispError (ReaderT Environment m) a
   } deriving ( Functor, Applicative, Monad, MonadReader Environment
-             , MonadState EvalState, MonadError LispError)
+             , MonadError LispError)
 
 type Environment = Map String LispVal
-type EvalState = ()
 type ApplyLisp = [LispVal] -> LispVal
 
 data LispError
   = TypeError LispVal LispVal
   | AtomUndefined String
+  | Parser ParseError
   | IncorrectEval LispVal
-  deriving Show
+  deriving (Show, Eq)
 
 type LispEvalM a = LispEvalT Identity a
 
 bareEval :: LispEvalM LispVal -> Either LispError LispVal
 bareEval = runIdentity
   . flip runReaderT coreEnv
-  . flip evalStateT () 
   . runExceptT 
   . unLispEvalT
 
@@ -48,7 +55,8 @@ evalD val@(Bool _) = return val
 evalD val@(Float _) = return val
 evalD val@(Character _) = return val
 evalD (List [Atom "quote", val]) = return val
-evalD (List [Atom "let", Atom name, value, body]) = local (Map.insert name value) (evalD body)
+evalD (List [Atom "let", Atom name, value, body]) = 
+  local (Map.insert name value) (evalD body)
 evalD (List (Atom fn : args)) = do
   args' <- mapM evalD args
   apply fn args'
@@ -64,17 +72,33 @@ apply fn args = do
   f <- asks (Map.lookup fn)
   case f of
        Just (Fn g) -> return (g args)
+       Just (List [Atom "lambda", List params, body]) -> do
+         newBody <- substituteVariables args (map unAtom params) body
+         evalD newBody
        _ -> throwError $ AtomUndefined fn
+
+unAtom :: LispVal -> String
+unAtom (Atom s) = s
+
+substituteVariables :: [LispVal] -> [String] -> LispVal -> LispEvalM LispVal
+substituteVariables args params body =
+  local (Map.union (Map.fromList (zip params args))) (evalD body)
 
 coreEnv :: Environment
 coreEnv = Map.fromList
-  [ ( "+", lispAdd )
-  , ( "+f", lispFPAdd )
-  , ( "-", lispSub )
+  [ ( "+", Fn lispAdd )
+  , ( "+f", Fn lispFPAdd )
+  , ( "-", Fn lispSub )
+  , ( "*", Fn lispMul )
   ]
 
-lispAdd :: LispVal
-lispAdd = Fn (Number . sum . map unNumber)
+type LispFunction = [LispVal] -> LispVal
+
+lispAdd :: LispFunction
+lispAdd = Number . sum . map unNumber
+
+lispMul :: LispFunction
+lispMul = Number . product . map unNumber
 
 unNumber :: LispVal -> Integer
 unNumber (Number x) = x
@@ -83,8 +107,8 @@ unFloat :: LispVal -> Double
 unFloat (Float x) = x
 unFloat (Number x) = fromInteger x
 
-lispFPAdd :: LispVal
-lispFPAdd = Fn (Float . sum . map unFloat)
+lispFPAdd :: LispFunction
+lispFPAdd = Float . sum . map unFloat
 
-lispSub :: LispVal
-lispSub = Fn (Number . foldl1' (-) . map unNumber)
+lispSub :: LispFunction
+lispSub = Number . foldl1' (-) . map unNumber

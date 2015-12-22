@@ -111,3 +111,7 @@ spec = do
 
     it "parses regular also" $ property $ \(NonNegative x) ->
       testParser int ("#d" ++ show x) `shouldBe` Right (Number x)
+
+  describe "quoted" $ do
+    it "uses a ' to parse a LispVal" $
+      testParser quoted "'a" `shouldBe` Right (List [ Atom "quote", Atom "a" ])

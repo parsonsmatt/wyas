@@ -56,9 +56,9 @@ list :: Parser LispVal
 list = List <$> sepBy lispExpr spaces
 
 
-lispQuoted :: Parser LispVal
-lispQuoted = do
-  x <- char '\\' *> lispExpr
+quoted :: Parser LispVal
+quoted = do
+  x <- char '\'' *> lispExpr
   return $ List [Atom "quote", x]
 
 float :: Parser LispVal
@@ -159,5 +159,5 @@ lispExpr = pzero
   <|> string
   <|> try float
   <|> int
-  <|> lispQuoted
+  <|> quoted
   <|> char '(' *> list <* char ')'

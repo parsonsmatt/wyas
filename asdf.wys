@@ -1,0 +1,6 @@
+(let x 5
+  (let y 6
+    (let z 7
+      (let square (lambda (x) (* x x))
+        (let cube (lambda (x) (* x x x))
+          (+ (square x) (cube y) (square z)))))))
