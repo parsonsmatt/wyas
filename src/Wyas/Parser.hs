@@ -154,10 +154,10 @@ readBinary = foldl' (\acc c -> (acc * 2) + digitToInt c) 0
 
 lispExpr :: Parser LispVal
 lispExpr = pzero
-  <|> try atom
-  <|> character
   <|> string
   <|> try float
-  <|> int
+  <|> try int
+  <|> try atom
+  <|> character
   <|> quoted
   <|> char '(' *> list <* char ')'

@@ -5,6 +5,7 @@
 
 module Wyas.Eval where
 
+import Debug.Trace
 import Data.List
 import Data.Map.Strict (Map)
 import Text.ParserCombinators.Parsec hiding (string)
@@ -31,7 +32,6 @@ newtype LispEvalT m a
              , MonadError LispError)
 
 type Environment = Map String LispVal
-type ApplyLisp = [LispVal] -> LispVal
 
 data LispError
   = TypeError LispVal LispVal
@@ -60,11 +60,15 @@ evalD (List [Atom "let", Atom name, value, body]) =
 evalD (List (Atom fn : args)) = do
   args' <- mapM evalD args
   apply fn args'
+evalD (List (List xs : args)) = do
+  res <- evalD (List xs)
+  evalD (List (res : args))
 evalD (Atom name) = do
   val <- asks (Map.lookup name)
   case val of
        Just a -> evalD a
        Nothing -> throwError $ AtomUndefined name
+evalD (List xs) = return (List xs)
 evalD a = throwError $ IncorrectEval a
 
 apply :: String -> [LispVal] -> LispEvalM LispVal
@@ -74,6 +78,7 @@ apply fn args = do
        Just (Fn g) -> return (g args)
        Just (List [Atom "lambda", List params, body]) -> do
          newBody <- substituteVariables args (map unAtom params) body
+         traceM ("Lambda eval: " ++ show newBody)
          evalD newBody
        _ -> throwError $ AtomUndefined fn
 
@@ -90,7 +95,46 @@ coreEnv = Map.fromList
   , ( "+f", Fn lispFPAdd )
   , ( "-", Fn lispSub )
   , ( "*", Fn lispMul )
+  , ( "cons", Fn cons )
+  , ( "car", Fn car )
+  , ( "cdr", Fn cdr )
+  , ( "if", Fn lispIf )
+  , ( "empty?", Fn empty )
+  , ( "<", numComp (<) )
+  , ( ">", numComp (>) )
+  , ( "<=", numComp (<=) )
+  , ( ">=", numComp (>=) )
+  , ( "=", Fn lispEq )
   ]
+
+numComp :: (forall a. Ord a => a -> a -> Bool) -> LispVal
+numComp fn = Fn go
+  where
+    go [Number a, Number b] = Bool (fn a b)
+    go [Float a,  Float b]  = Bool (fn a b)
+    go [String a, String b] = Bool (fn a b)
+
+lispEq :: LispFunction
+lispEq (x:xs) = Bool (all (x ==) xs)
+
+empty :: LispFunction
+empty [List []] = Bool True
+empty _ = Bool False
+
+lispIf :: LispFunction
+lispIf [pred, yas, nope] =
+  case pred of
+       Bool False -> nope
+       _ -> yas
+
+cons :: LispFunction
+cons [head, List rest] = List (head : rest)
+
+car :: LispFunction
+car [List (x:_)] = x
+
+cdr :: LispFunction
+cdr [List (_:xs)] = List xs
 
 type LispFunction = [LispVal] -> LispVal
 
