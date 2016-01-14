@@ -39,13 +39,7 @@ evalD :: LispVal -> LispEvalM LispVal
 evalD val@(String _) = return val
 evalD val@(Number _) = return val
 evalD val@(Bool _) = return val
+evalD val@(Character _) = return val
+evalD val@(Float _) = return val
 evalD (List [Atom "quote", val]) = return val
-evalD (List (Atom fn : args)) = apply fn args
 evalD a = throwError ()
-
-apply :: String -> [LispVal] -> LispEvalM LispVal
-apply fn args = do
-  f <- asks (Map.lookup fn)
-  case f of
-       Just (Fn g) -> return (g args)
-       _ -> throwError ()
