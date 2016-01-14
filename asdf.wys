@@ -1,0 +1,7 @@
+(let map (lambda (f xs) 
+                 (if (empty? xs) 
+                    '() 
+                    (cons (f (car xs)) (cdr xs))))
+     (map 'empty? '()))
+     
+

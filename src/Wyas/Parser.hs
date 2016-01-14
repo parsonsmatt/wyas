@@ -56,9 +56,9 @@ list :: Parser LispVal
 list = List <$> sepBy lispExpr spaces
 
 
-lispQuoted :: Parser LispVal
-lispQuoted = do
-  x <- char '\\' *> lispExpr
+quoted :: Parser LispVal
+quoted = do
+  x <- char '\'' *> lispExpr
   return $ List [Atom "quote", x]
 
 float :: Parser LispVal
@@ -154,10 +154,10 @@ readBinary = foldl' (\acc c -> (acc * 2) + digitToInt c) 0
 
 lispExpr :: Parser LispVal
 lispExpr = pzero
-  <|> try atom
-  <|> character
   <|> string
   <|> try float
-  <|> int
-  <|> lispQuoted
+  <|> try int
+  <|> try atom
+  <|> character
+  <|> quoted
   <|> char '(' *> list <* char ')'

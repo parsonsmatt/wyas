@@ -2,7 +2,7 @@ module Wyas.LispVal where
 
 import Numeric
 import Text.PrettyPrint.Leijen
-import Text.Show.Functions
+import Text.Show.Functions ()
 
 instance Eq ((->) a b) where
   _ == _ = False
@@ -33,7 +33,3 @@ instance Pretty LispVal where
   -- ( "asdf" 3 )
   pretty (List ls) = encloseSep lparen rparen space (map pretty ls)
   pretty (Fn _) = text "<function>"
-
-truthy :: LispVal -> Bool
-truthy (Bool False) = False
-truthy _ = True

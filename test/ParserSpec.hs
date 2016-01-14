@@ -94,6 +94,11 @@ spec = do
         `shouldBe`
           Right (List [Number 1, List [Number 2, List [Number 3, List [Number 4]]]])
 
+    it "handles negative numbers" $
+      testParser list "-1 a #t"
+        `shouldBe`
+        Right (List [Number (-1), Atom "a", Bool True])
+
   describe "int" $ do
     it "parses ints just fine" $ property $ \x -> 
       testParser int (show x) `shouldBe` Right (Number x)
@@ -111,3 +116,10 @@ spec = do
 
     it "parses regular also" $ property $ \(NonNegative x) ->
       testParser int ("#d" ++ show x) `shouldBe` Right (Number x)
+
+    it "parses negative numbers" $ property $ \(NonNegative x) ->
+      testParser int ("-" ++ show x) `shouldBe` Right (Number (negate x))
+
+  describe "quoted" $ do
+    it "uses a ' to parse a LispVal" $
+      testParser quoted "'a" `shouldBe` Right (List [ Atom "quote", Atom "a" ])
