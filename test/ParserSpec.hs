@@ -16,6 +16,11 @@ mkFloatStr i = show i ++ "." ++ show i
 
 spec :: Spec
 spec = do
+  describe "example files" $ do
+      it "parses map.wyas" $ do
+          r <- parseFile "test/Examples/map.wyas"
+          r `shouldSatisfy` isRight
+
   describe "string" $ do
     it "fails on bare words" $
       testParser string "asdf" `shouldSatisfy` isLeft

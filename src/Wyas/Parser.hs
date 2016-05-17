@@ -10,6 +10,13 @@ import Wyas.LispVal
 -- $setup
 -- >>> import Data.Either (isLeft)
 
+parseFile :: FilePath -> IO (Either ParseError LispVal)
+parseFile f = do
+    str <- readFile f
+    case runParser lispExpr () f str of
+         Left err -> return (Left err)
+         Right v -> return (Right v)
+
 parseLisp :: Parser LispVal -> String -> Either ParseError LispVal
 parseLisp p = runParser p () ""
 

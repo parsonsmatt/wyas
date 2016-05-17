@@ -2,6 +2,6 @@
                  (if (empty? xs) 
                     '() 
                     (cons (f (car xs)) (cdr xs))))
-     (map 'empty? '()))
+     (map (lambda (x) (empty? x)) '()))
      
 

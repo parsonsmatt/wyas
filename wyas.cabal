@@ -21,6 +21,7 @@ library
                      , Wyas.Pretty
                      , Wyas.Eval
   build-depends:       base >= 4.8 && < 5
+                     , text
                      , parsec
                      , containers
                      , wl-pprint

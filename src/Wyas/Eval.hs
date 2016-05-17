@@ -55,18 +55,18 @@ evalD val@(Float _) = return val
 evalD val@(Character _) = return val
 evalD (List [Atom "quote", val]) = return val
 evalD (List [Atom "let", Atom name, value, body]) =
-  local (Map.insert name value) (evalD body)
+    local (Map.insert name value) (evalD body)
 evalD (List (Atom fn : args)) = do
-  args' <- mapM evalD args
-  apply fn args'
+    args' <- mapM evalD args
+    apply fn args'
 evalD (List (List xs : args)) = do
-  res <- evalD (List xs)
-  evalD (List (res : args))
+    res <- evalD (List xs)
+    evalD (List (res : args))
 evalD (Atom name) = do
-  val <- asks (Map.lookup name)
-  case val of
-       Just a -> evalD a
-       Nothing -> throwError $ AtomUndefined name
+    val <- asks (Map.lookup name)
+    case val of
+         Just a -> evalD a
+         Nothing -> throwError $ AtomUndefined name
 evalD (List xs) = return (List xs)
 evalD a = throwError $ IncorrectEval a
 
@@ -76,17 +76,16 @@ apply fn args = do
   case f of
        Just (Fn g) -> return (g args)
        Just (List [Atom "lambda", List params, body]) -> do
-         newBody <- substituteVariables args (map unAtom params) body
-         traceM ("Lambda eval: " ++ show newBody)
-         evalD newBody
-       _ -> throwError $ AtomUndefined fn
-
-unAtom :: LispVal -> String
-unAtom (Atom s) = s
+           newBody <- substituteVariables args (map unAtom params) body
+           evalD newBody
+       Nothing -> throwError $ AtomUndefined fn
 
 substituteVariables :: [LispVal] -> [String] -> LispVal -> LispEvalM LispVal
 substituteVariables args params body =
-  local (Map.union (Map.fromList (zip params args))) (evalD body)
+    local (Map.fromList (zip params args) `Map.union`) (evalD body)
+
+unAtom :: LispVal -> String
+unAtom (Atom s) = s
 
 coreEnv :: Environment
 coreEnv = Map.fromList
